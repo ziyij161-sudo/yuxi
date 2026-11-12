@@ -178,6 +178,68 @@
         object-fit: contain;
     }
 
+    /* ===== 手机竖屏提示（游戏为横屏画面，竖屏时引导用户旋转） ===== */
+    #rotateHint {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 100000;
+      background: #0a0806;
+      color: #e8d5a3;
+      font-family: sans-serif;
+      text-align: center;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #rotateHint .rotate-inner {
+      padding: 24px;
+    }
+
+    #rotateHint .rotate-icon {
+      width: 60px;
+      height: 96px;
+      margin: 0 auto 28px;
+      border: 4px solid #b5a276;
+      border-radius: 12px;
+      animation: rotateShake 1.8s ease-in-out infinite;
+    }
+
+    @keyframes rotateShake {
+      0%, 20% { transform: rotate(0deg); }
+      55%, 80% { transform: rotate(90deg); }
+      100% { transform: rotate(90deg); }
+    }
+
+    #rotateHint .rotate-title {
+      font-size: 22px;
+      margin: 0 0 10px;
+    }
+
+    #rotateHint .rotate-sub {
+      font-size: 14px;
+      color: #8f7f5e;
+      margin: 0 0 28px;
+    }
+
+    #rotateFullscreenBtn {
+      background: #6b5734;
+      color: #e8d5a3;
+      border: 1px solid #b5a276;
+      border-radius: 6px;
+      font-size: 16px;
+      padding: 12px 28px;
+      cursor: pointer;
+    }
+
+    /* 仅触屏设备竖屏时显示；转为横屏后自动消失 */
+    @media (orientation: portrait) and (hover: none) and (pointer: coarse) {
+      #rotateHint { display: flex; }
+    }
+
   </style>
 
 </head>
@@ -185,6 +247,16 @@
 <body>
   <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
   <div id="overlayDiv"></div>
+
+  <!-- 手机竖屏时的旋转提示遮罩（横屏后自动隐藏） -->
+  <div id="rotateHint">
+    <div class="rotate-inner">
+      <div class="rotate-icon"></div>
+      <p class="rotate-title">请将手机横过来游玩</p>
+      <p class="rotate-sub">本游戏为横屏画面</p>
+      <button id="rotateFullscreenBtn" type="button">全屏并锁定横屏</button>
+    </div>
+  </div>
 
   <img id="presplash" src="web-presplash.jpg">
 
@@ -218,6 +290,35 @@
   <script>
       // The URL to game.zip, relative to the URL of this file.
       window.gameZipURL = 'game.zip';
+
+      // 手机横屏：点按钮进全屏并尝试锁定横屏。
+      // Android Chrome 支持锁定；iOS Safari 不支持，靠上面的竖屏遮罩引导用户手动旋转。
+      function tryLandscapeFullscreen() {
+        var el = document.documentElement;
+        var req = el.requestFullscreen || el.webkitRequestFullscreen;
+        var done = function () {
+          if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('landscape').catch(function () {});
+          }
+        };
+        if (req) {
+          var p = req.call(el);
+          if (p && p.then) {
+            p.then(done).catch(function () {});
+          } else {
+            done();
+          }
+        } else {
+          done();
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', function () {
+        var btn = document.getElementById('rotateFullscreenBtn');
+        if (btn) {
+          btn.addEventListener('click', tryLandscapeFullscreen);
+        }
+      });
 
       // Register the service worker.
       if (navigator.serviceWorker) {
